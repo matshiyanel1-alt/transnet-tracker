@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transnet Rail — Phalaborwa Corridor</title>
+<style>
+/* ── PASSWORD GATE ── */
+#gate{
+  position:fixed;inset:0;z-index:9999;
+  background:#06060f;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .4s ease;
+}
+#gate.fade{opacity:0;pointer-events:none;}
+.gate-box{
+  border:1px solid #1a2540;border-radius:16px;padding:40px 44px;
+  background:#0d0d1a;text-align:center;width:320px;
+}
+.gate-logo{font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:4px;}
+.gate-logo span{color:#3b82f6;}
+.gate-sub{font-size:11px;color:#374151;margin-bottom:28px;letter-spacing:.5px;text-transform:uppercase;}
+.gate-label{font-size:10px;color:#4b5563;text-align:left;margin-bottom:6px;letter-spacing:.6px;text-transform:uppercase;}
+.gate-input{
+  width:100%;background:#111120;border:1px solid #1a2540;border-radius:8px;
+  padding:10px 14px;font-size:14px;color:#e2e2ee;font-family:inherit;
+  outline:none;transition:border-color .15s;letter-spacing:2px;
+}
+.gate-input:focus{border-color:#3b82f6;}
+.gate-input.err{border-color:#ef4444;animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.gate-btn{
+  width:100%;margin-top:14px;padding:10px;border-radius:8px;
+  background:#1d4ed8;border:none;color:#fff;font-size:13px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:background .15s;letter-spacing:.3px;
+}
+.gate-btn:hover{background:#2563eb;}
+.gate-err{font-size:11px;color:#ef4444;margin-top:10px;height:16px;transition:opacity .2s;}
+.gate-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#052e16;border:1px solid #14532d;border-radius:20px;
+  padding:3px 10px;margin-bottom:24px;font-size:10px;font-weight:700;color:#22c55e;
+}
+.gate-pulse{width:6px;height:6px;background:#22c55e;border-radius:50%;animation:blink 1.4s infinite;}
+</style>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#080810;color:#e2e2ee;
+  height:100vh;
+  display:grid;
+  grid-template-rows:48px 1fr 118px;
+  overflow:hidden;
+}
+
+/* ── HEADER ── */
+header{
+  background:#0d0d18;border-bottom:1px solid #1a1a2e;
+  display:flex;align-items:center;padding:0 20px;gap:16px;z-index:10;
+}
+.logo{font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.5px;white-space:nowrap;}
+.logo span{color:#3b82f6;}
+.route-tag{font-size:11px;color:#4b5563;border-left:1px solid #1a1a2e;padding-left:14px;}
+.header-kpis{display:flex;gap:20px;margin-left:auto;align-items:center;}
+.kpi{text-align:center;}
+.kpi-val{font-size:14px;font-weight:700;color:#fff;}
+.kpi-val.g{color:#22c55e;}.kpi-val.o{color:#fb923c;}
+.kpi-lbl{font-size:9px;color:#4b5563;text-transform:uppercase;letter-spacing:0.8px;}
+.live-pill{display:flex;align-items:center;gap:6px;background:#052e16;border:1px solid #14532d;border-radius:20px;padding:3px 10px;margin-left:16px;}
+.live-dot{width:6px;height:6px;background:#22c55e;border-radius:50%;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.live-text{font-size:10px;font-weight:700;color:#22c55e;letter-spacing:.8px;}
+.clock{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;margin-left:8px;}
+.sync-row{display:flex;align-items:center;gap:4px;margin-left:12px;}
+.sync-dot{width:5px;height:5px;background:#374151;border-radius:50%;}
+.sync-dot.spin{animation:spin 1s linear;background:#3b82f6;}
+@keyframes spin{0%{transform:scale(1)}50%{transform:scale(1.6)}100%{transform:scale(1)}}
+.sync-lbl{font-size:10px;color:#4b5563;}
+
+/* ── MAIN ── */
+.main{display:grid;grid-template-columns:250px 1fr;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:#0d0d18;border-right:1px solid #1a1a2e;display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-scroll{flex:1;overflow-y:auto;padding:12px 12px 0;}
+.sidebar-scroll::-webkit-scrollbar{width:3px;}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:2px;}
+.s-lbl{font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:9px;}
+
+/* TRAIN CARDS */
+.tcard{border:1px solid #1a1a2e;border-radius:8px;padding:10px 11px;margin-bottom:6px;cursor:pointer;transition:all .15s;background:#111120;position:relative;overflow:hidden;}
+.tcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;transition:background .15s;}
+.tcard:hover{background:#141428;border-color:#252545;}
+.tcard.sel-0::before{background:#3b82f6;} .tcard.sel-0{border-color:#2a3f6f;background:#0d1e3a;}
+.tcard.sel-1::before{background:#fb923c;} .tcard.sel-1{border-color:#7c2d12;background:#1a0e04;}
+.tcard.sel-2::before{background:#a78bfa;} .tcard.sel-2{border-color:#4c1d95;background:#110820;}
+.tc1{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.tc-id{font-size:13px;font-weight:700;color:#fff;}
+.badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.b-on{background:#052e16;color:#22c55e;border:1px solid #14532d;}
+.b-delay{background:#431407;color:#fb923c;border:1px solid #7c2d12;}
+.b-stop{background:#2e1065;color:#a78bfa;border:1px solid #4c1d95;}
+.tc2{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.tc-pos{font-size:11px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;}
+.tc-spd{font-size:11px;font-weight:700;}
+.tc3{margin-bottom:6px;}
+.prog-track{background:#1a1a2e;height:3px;border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+.prog-labels{display:flex;justify-content:space-between;margin-top:3px;}
+.prog-lbl{font-size:9px;color:#374151;}
+.tc4{display:flex;align-items:center;justify-content:space-between;}
+.tc-cargo{font-size:10px;color:#4b5563;}
+.tc-eta{font-size:11px;font-weight:600;color:#60a5fa;}
+
+/* CORRIDOR STATS */
+.corridor-stats{border-top:1px solid #1a1a2e;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cs{background:#111120;border:1px solid #1a1a2e;border-radius:6px;padding:7px 10px;}
+.cs-val{font-size:17px;font-weight:800;color:#fff;line-height:1;}
+.cs-val.g{color:#22c55e;}.cs-val.o{color:#fb923c;}
+.cs-lbl{font-size:9px;color:#4b5563;margin-top:2px;}
+
+/* ── MAP ── */
+.map-wrap{position:relative;overflow:hidden;background:#080810;}
+#route-svg{width:100%;height:100%;display:block;}
+
+/* TOOLTIP */
+.map-tooltip{
+  position:absolute;background:#0d0d18;border:1px solid #1a1a2e;border-radius:8px;
+  padding:8px 12px;pointer-events:none;z-index:30;opacity:0;transition:opacity .15s;
+  min-width:140px;
+}
+.map-tooltip.show{opacity:1;}
+.tt-id{font-size:12px;font-weight:700;color:#fff;margin-bottom:5px;}
+.tt-row{display:flex;justify-content:space-between;gap:16px;font-size:10px;}
+.tt-k{color:#4b5563;}.tt-v{color:#e2e2ee;font-weight:500;}
+
+/* POPUP */
+.popup{
+  position:absolute;top:14px;right:14px;width:248px;
+  background:#0d0d18;border:1px solid #1a1a2e;border-radius:12px;
+  z-index:20;opacity:0;transform:translateX(14px);
+  transition:all .2s ease;pointer-events:none;overflow:hidden;
+}
+.popup.show{opacity:1;transform:translateX(0);pointer-events:all;}
+
+/* popup header */
+.ph{padding:12px 14px 10px;border-bottom:1px solid #111120;}
+.ph-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ph-id{font-size:15px;font-weight:800;color:#fff;}
+.ph-close{background:#1a1a2e;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;color:#6b7280;font-size:10px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ph-close:hover{background:#2a2a3e;color:#fff;}
+.ph-metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.pm{background:#111120;border-radius:6px;padding:6px 8px;}
+.pm-val{font-size:14px;font-weight:700;color:#fff;}
+.pm-val.acc{color:#60a5fa;}.pm-val.ok{color:#22c55e;}.pm-val.warn{color:#fb923c;}.pm-val.stop{color:#a78bfa;}
+.pm-lbl{font-size:9px;color:#4b5563;margin-top:1px;}
+
+/* popup details */
+.pd{padding:10px 14px 0;}
+.prow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #0f0f1c;}
+.prow:last-child{border:none;}
+.pk{font-size:10px;color:#4b5563;}.pv{font-size:10px;color:#d1d5db;font-weight:500;}
+
+/* popup actions */
+.pa{padding:10px 14px 12px;display:grid;grid-template-columns:1fr 1fr;gap:5px;border-top:1px solid #111120;margin-top:8px;}
+.pa-btn{background:#111120;border:1px solid #1a1a2e;border-radius:6px;padding:5px 8px;font-size:10px;color:#94a3b8;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center;}
+.pa-btn:hover{background:#1a1a2e;color:#fff;border-color:#2a3a5e;}
+.pa-btn.danger{color:#fb923c;border-color:#431407;}
+.pa-btn.danger:hover{background:#1f0a02;color:#fb923c;}
+
+/* map controls */
+.map-controls{position:absolute;top:14px;left:14px;display:flex;flex-direction:column;gap:5px;z-index:10;}
+.mc-btn{background:#0d0d18cc;backdrop-filter:blur(4px);border:1px solid #1a1a2e;border-radius:6px;padding:5px 10px;font-size:10px;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .15s;}
+.mc-btn:hover,.mc-btn.on{background:#1a1a2e;color:#e2e2ee;border-color:#2a3a5e;}
+
+/* ── BOTTOM ── */
+.bottom{background:#0d0d18;border-top:1px solid #1a1a2e;display:grid;grid-template-columns:1fr auto;overflow:hidden;}
+.alerts-wrap{padding:10px 16px;overflow:hidden;}
+.a-header{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.a-lbl{font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:1.2px;}
+.a-updated{font-size:9px;color:#374151;margin-left:auto;}
+.a-refresh{display:inline-block;font-size:10px;color:#374151;cursor:pointer;margin-left:4px;}
+.a-refresh.spin{animation:rotatespin .4s ease;}
+@keyframes rotatespin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.alerts-list{display:flex;flex-direction:column;gap:4px;}
+.arow{display:flex;align-items:flex-start;gap:7px;}
+.adot{width:6px;height:6px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.adot.crit{background:#ef4444;}.adot.warn{background:#fb923c;}.adot.ok{background:#22c55e;}.adot.info{background:#3b82f6;}
+.atext{font-size:11px;color:#9ca3af;line-height:1.4;}
+.atime{font-size:10px;color:#374151;margin-left:5px;}
+.quick-actions{border-left:1px solid #1a1a2e;padding:10px 14px;display:flex;flex-direction:column;gap:5px;justify-content:center;min-width:170px;}
+.qa-lbl{font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px;}
+.qa-btn{background:#111120;border:1px solid #1a1a2e;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s;}
+.qa-btn:hover{background:#1a1a2e;color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-logo">Rail<span>Track</span></div>
+    <div class="gate-sub">Phalaborwa Freight Corridor</div>
+    <div class="gate-badge"><div class="gate-pulse"></div>LIVE SYSTEM</div>
+    <div class="gate-label">Access Code</div>
+    <input class="gate-input" id="gate-input" type="password" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')unlock()"/>
+    <button class="gate-btn" onclick="unlock()">Enter Dashboard</button>
+    <div class="gate-err" id="gate-err"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Rail<span>Track</span></div>
+  <div class="route-tag">Phalaborwa Freight Corridor · Limpopo</div>
+  <div class="header-kpis">
+    <div class="kpi"><div class="kpi-val g" id="h-ontime">2</div><div class="kpi-lbl">On Time</div></div>
+    <div class="kpi"><div class="kpi-val o">1</div><div class="kpi-lbl">Issue</div></div>
+    <div class="kpi"><div class="kpi-val">89%</div><div class="kpi-lbl">7-Day Rate</div></div>
+    <div class="kpi"><div class="kpi-val">3</div><div class="kpi-lbl">Active</div></div>
+    <div class="kpi"><div class="kpi-val" id="h-avgspd">65</div><div class="kpi-lbl">Avg km/h</div></div>
+  </div>
+  <div class="live-pill"><div class="live-dot"></div><div class="live-text">LIVE</div></div>
+  <div class="clock" id="clock">--:--:--</div>
+  <div class="sync-row">
+    <div class="sync-dot" id="sync-dot"></div>
+    <div class="sync-lbl">Synced <span id="sync-ago">0</span>s ago</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-scroll">
+      <div class="s-lbl">Active Trains</div>
+
+      <!-- TFR-4471 -->
+      <div class="tcard sel-0" id="card-0" onclick="selectTrain(0)">
+        <div class="tc1">
+          <div class="tc-id">TFR-4471</div>
+          <div class="badge b-on">On Time</div>
+        </div>
+        <div class="tc2">
+          <div class="tc-pos" id="pos-0">Namakgale</div>
+          <div class="tc-spd" style="color:#60a5fa;" id="spd-0">72 km/h</div>
+        </div>
+        <div class="tc3">
+          <div class="prog-track"><div class="prog-fill" id="prog-0" style="background:#3b82f6;width:27%;"></div></div>
+          <div class="prog-labels"><span class="prog-lbl">Phalaborwa</span><span class="prog-lbl" id="pct-0">27%</span><span class="prog-lbl">Hoedspruit</span></div>
+        </div>
+        <div class="tc4">
+          <div class="tc-cargo">Iron Ore · 48 wagons</div>
+          <div class="tc-eta" id="eta-0">ETA 14:23</div>
+        </div>
+      </div>
+
+      <!-- TFR-3892 -->
+      <div class="tcard" id="card-1" onclick="selectTrain(1)">
+        <div class="tc1">
+          <div class="tc-id">TFR-3892</div>
+          <div class="badge b-delay">Delayed +18min</div>
+        </div>
+        <div class="tc2">
+          <div class="tc-pos" id="pos-1">Lulekani Yard</div>
+          <div class="tc-spd" style="color:#fb923c;" id="spd-1">58 km/h</div>
+        </div>
+        <div class="tc3">
+          <div class="prog-track"><div class="prog-fill" id="prog-1" style="background:#fb923c;width:79%;"></div></div>
+          <div class="prog-labels"><span class="prog-lbl">Hoedspruit</span><span class="prog-lbl" id="pct-1">79%</span><span class="prog-lbl">Phalaborwa</span></div>
+        </div>
+        <div class="tc4">
+          <div class="tc-cargo">Phosphate · 36 wagons</div>
+          <div class="tc-eta" style="color:#fb923c;" id="eta-1">ETA 15:41</div>
+        </div>
+      </div>
+
+      <!-- TFR-5103 -->
+      <div class="tcard" id="card-2" onclick="selectTrain(2)">
+        <div class="tc1">
+          <div class="tc-id">TFR-5103</div>
+          <div class="badge b-stop">Stopped</div>
+        </div>
+        <div class="tc2">
+          <div class="tc-pos">Gravelotte</div>
+          <div class="tc-spd" style="color:#a78bfa;">0 km/h</div>
+        </div>
+        <div class="tc3">
+          <div class="prog-track"><div class="prog-fill" id="prog-2" style="background:#a78bfa;width:47%;"></div></div>
+          <div class="prog-labels"><span class="prog-lbl">Phalaborwa</span><span class="prog-lbl">47%</span><span class="prog-lbl">Hoedspruit</span></div>
+        </div>
+        <div class="tc4">
+          <div class="tc-cargo">Copper · 24 wagons</div>
+          <div class="tc-eta" style="color:#a78bfa;"><span id="stopped-min">34</span>min stopped</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="corridor-stats">
+      <div class="cs"><div class="cs-val g">2</div><div class="cs-lbl">On Time</div></div>
+      <div class="cs"><div class="cs-val o">1</div><div class="cs-lbl">Delayed/Stopped</div></div>
+      <div class="cs"><div class="cs-val">89%</div><div class="cs-lbl">Utilisation</div></div>
+      <div class="cs"><div class="cs-val" id="avg-spd">65</div><div class="cs-lbl">Avg km/h</div></div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <svg id="route-svg" viewBox="0 0 920 560" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="gb" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".55"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+        <radialGradient id="go" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fb923c" stop-opacity=".55"/><stop offset="100%" stop-color="#fb923c" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gp" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".55"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+      </defs>
+
+      <rect width="920" height="560" fill="#06060f"/>
+
+      <!-- terrain base: subtle dark region fills suggesting Limpopo bushveld -->
+      <ellipse cx="220" cy="160" rx="180" ry="120" fill="#0a1020" opacity=".7"/>
+      <ellipse cx="600" cy="350" rx="260" ry="180" fill="#080e1a" opacity=".6"/>
+      <ellipse cx="820" cy="480" rx="120" ry="90" fill="#0a1020" opacity=".5"/>
+      <ellipse cx="150" cy="420" rx="140" ry="100" fill="#07100e" opacity=".4"/>
+      <ellipse cx="450" cy="220" rx="200" ry="120" fill="#090e18" opacity=".4"/>
+
+      <!-- topographic contour lines — faint, suggesting elevation -->
+      <path d="M40,80 Q120,50 200,90 Q300,130 380,110 Q480,85 560,120 Q650,155 730,140 Q820,125 900,150"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".35"/>
+      <path d="M40,130 Q130,100 230,140 Q340,178 420,158 Q510,135 600,165 Q700,195 790,178 Q870,164 920,185"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".3"/>
+      <path d="M20,200 Q100,170 200,205 Q310,242 410,225 Q510,205 620,232 Q720,258 820,242 Q880,232 920,248"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".28"/>
+      <path d="M0,280 Q80,255 180,278 Q290,305 390,292 Q495,278 600,302 Q705,325 810,310 Q880,300 920,315"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".25"/>
+      <path d="M0,360 Q90,338 200,358 Q320,380 430,368 Q540,356 640,374 Q745,392 850,378 Q900,370 920,378"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".22"/>
+      <path d="M0,440 Q100,422 220,438 Q350,456 460,446 Q570,435 670,450 Q770,464 880,450 Q905,446 920,450"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".18"/>
+      <path d="M0,510 Q120,498 240,510 Q380,524 490,516 Q610,507 720,518 Q820,528 920,516"
+        fill="none" stroke="#1a2540" stroke-width="1" opacity=".14"/>
+
+      <!-- subtle tactical grid -->
+      <line x1="0" y1="140" x2="920" y2="140" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="0" y1="280" x2="920" y2="280" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="0" y1="420" x2="920" y2="420" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="184" y1="0" x2="184" y2="560" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="368" y1="0" x2="368" y2="560" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="552" y1="0" x2="552" y2="560" stroke="#101828" stroke-width=".5" opacity=".6"/>
+      <line x1="736" y1="0" x2="736" y2="560" stroke="#101828" stroke-width=".5" opacity=".6"/>
+
+      <!-- faint river suggestion (Olifants River runs through this corridor) -->
+      <path d="M0,320 Q60,310 120,330 Q180,350 240,340 Q310,328 380,345 Q460,364 530,355 Q600,344 660,360 Q730,378 800,368 Q870,358 920,370"
+        fill="none" stroke="#0d2535" stroke-width="2.5" opacity=".5" stroke-linecap="round"/>
+      <path d="M0,325 Q60,315 120,335 Q180,355 240,345 Q310,333 380,350 Q460,369 530,360 Q600,349 660,365 Q730,383 800,373 Q870,363 920,375"
+        fill="none" stroke="#0a1e2c" stroke-width="1" opacity=".4" stroke-linecap="round"/>
+
+      <!-- coordinate crosshairs at corners — control room detail -->
+      <text x="8" y="16" fill="#1a2540" font-size="8" font-family="monospace" opacity=".6">-23.94°S</text>
+      <text x="8" y="548" fill="#1a2540" font-size="8" font-family="monospace" opacity=".6">-24.08°S</text>
+      <text x="820" y="16" fill="#1a2540" font-size="8" font-family="monospace" opacity=".6">31.14°E</text>
+      <text x="820" y="548" fill="#1a2540" font-size="8" font-family="monospace" opacity=".6">31.48°E</text>
+
+      <!-- vignette: dark edges pull focus to centre -->
+      <radialGradient id="vign" cx="50%" cy="50%" r="70%">
+        <stop offset="0%" stop-color="transparent"/>
+        <stop offset="100%" stop-color="#06060f" stop-opacity=".75"/>
+      </radialGradient>
+      <rect width="920" height="560" fill="url(#vign)"/>
+
+      <!-- track glow -->
+      <polyline points="100,60 175,115 268,185 378,268 500,348 610,408 715,455 840,500"
+        fill="none" stroke="#3b82f6" stroke-width="18" stroke-linecap="round" opacity=".05" filter="url(#soft)"/>
+      <!-- track base -->
+      <polyline points="100,60 175,115 268,185 378,268 500,348 610,408 715,455 840,500"
+        fill="none" stroke="#1e2d45" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="100,60 175,115 268,185 378,268 500,348 610,408 715,455 840,500"
+        fill="none" stroke="#2d4a7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- STATIONS -->
+      <circle cx="100" cy="60" r="8" fill="#0d1e3a" stroke="#3b82f6" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="100" cy="60" r="3.5" fill="#60a5fa"/>
+      <text x="116" y="57" fill="#94a3b8" font-size="12" font-weight="700" font-family="-apple-system,sans-serif">Phalaborwa Mine</text>
+      <text x="116" y="71" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">Origin · 0 km</text>
+
+      <circle cx="175" cy="115" r="5" fill="#0d1e3a" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="175" cy="115" r="2" fill="#60a5fa"/>
+      <text x="188" y="112" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Phalaborwa Yard</text>
+      <text x="188" y="125" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">4 km</text>
+
+      <circle cx="268" cy="185" r="5" fill="#0d1e3a" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="268" cy="185" r="2" fill="#60a5fa"/>
+      <text x="280" y="182" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Lulekani</text>
+      <text x="280" y="195" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">12 km</text>
+
+      <circle cx="378" cy="268" r="5" fill="#0d1e3a" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="378" cy="268" r="2" fill="#60a5fa"/>
+      <text x="390" y="265" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Namakgale</text>
+      <text x="390" y="278" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">19 km</text>
+
+      <!-- Gravelotte — stopped -->
+      <circle cx="500" cy="348" r="7" fill="#120b28" stroke="#a78bfa" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="500" cy="348" r="3" fill="#a78bfa"/>
+      <circle cx="500" cy="348" r="12" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0">
+        <animate attributeName="r" from="8" to="24" dur="2.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from=".5" to="0" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+      <text x="514" y="345" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Gravelotte</text>
+      <text x="514" y="358" fill="#4c1d95" font-size="9" font-family="-apple-system,sans-serif">34 km · ⚠ Stop</text>
+
+      <circle cx="610" cy="408" r="5" fill="#0d1e3a" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="610" cy="408" r="2" fill="#60a5fa"/>
+      <text x="622" y="405" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Mica</text>
+      <text x="622" y="418" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">46 km</text>
+
+      <circle cx="715" cy="455" r="5" fill="#0d1e3a" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="715" cy="455" r="2" fill="#60a5fa"/>
+      <text x="727" y="452" fill="#6b7280" font-size="10" font-weight="600" font-family="-apple-system,sans-serif">Ofcolaco</text>
+      <text x="727" y="465" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">55 km</text>
+
+      <circle cx="840" cy="500" r="8" fill="#0d1e3a" stroke="#3b82f6" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="840" cy="500" r="3.5" fill="#60a5fa"/>
+      <text x="854" y="497" fill="#94a3b8" font-size="12" font-weight="700" font-family="-apple-system,sans-serif">Hoedspruit Yard</text>
+      <text x="854" y="511" fill="#374151" font-size="9" font-family="-apple-system,sans-serif">Destination · 67 km</text>
+
+      <!-- TRAIN 0 — blue, moving right -->
+      <g id="train-0" style="cursor:pointer;">
+        <!-- direction arrow trail -->
+        <line id="trail-0" stroke="#3b82f600" stroke-width="2" stroke-linecap="round"/>
+        <!-- glow -->
+        <circle r="30" fill="url(#gb)" filter="url(#soft)">
+          <animate attributeName="r" values="26;34;26" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <!-- body -->
+        <circle r="17" fill="#0d1e3a" stroke="#3b82f6" stroke-width="2.5" filter="url(#glow)"/>
+        <!-- label -->
+        <text text-anchor="middle" dominant-baseline="middle" fill="#60a5fa" font-size="9" font-weight="800" font-family="-apple-system,sans-serif">4471</text>
+        <!-- direction arrow -->
+        <polygon id="arrow-0" fill="#3b82f6" opacity=".9"/>
+        <!-- invisible hit area -->
+        <circle r="28" fill="transparent" onclick="selectTrain(0)" onmouseenter="showTooltip(event,0)" onmouseleave="hideTooltip()"/>
+      </g>
+
+      <!-- TRAIN 1 — orange, moving left -->
+      <g id="train-1" style="cursor:pointer;">
+        <line id="trail-1" stroke="#fb923c00" stroke-width="2" stroke-linecap="round"/>
+        <circle r="30" fill="url(#go)" filter="url(#soft)">
+          <animate attributeName="r" values="24;32;24" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle r="17" fill="#1a0e04" stroke="#fb923c" stroke-width="2.5" filter="url(#glow)"/>
+        <text text-anchor="middle" dominant-baseline="middle" fill="#fb923c" font-size="9" font-weight="800" font-family="-apple-system,sans-serif">3892</text>
+        <polygon id="arrow-1" fill="#fb923c" opacity=".9"/>
+        <circle r="28" fill="transparent" onclick="selectTrain(1)" onmouseenter="showTooltip(event,1)" onmouseleave="hideTooltip()"/>
+      </g>
+
+      <!-- TRAIN 2 — purple, stopped -->
+      <g id="train-2" style="cursor:pointer;">
+        <circle r="17" fill="#110820" stroke="#a78bfa" stroke-width="2.5" filter="url(#glow)"/>
+        <text text-anchor="middle" dominant-baseline="middle" fill="#a78bfa" font-size="9" font-weight="800" font-family="-apple-system,sans-serif">5103</text>
+        <!-- stop blink -->
+        <circle r="20" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0">
+          <animate attributeName="opacity" values="0;.6;0" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle r="28" fill="transparent" onclick="selectTrain(2)" onmouseenter="showTooltip(event,2)" onmouseleave="hideTooltip()"/>
+      </g>
+    </svg>
+
+    <!-- Hover tooltip -->
+    <div class="map-tooltip" id="tooltip">
+      <div class="tt-id" id="tt-id">TFR-4471</div>
+      <div class="tt-row"><span class="tt-k">Speed</span><span class="tt-v" id="tt-spd">72 km/h</span></div>
+      <div class="tt-row"><span class="tt-k">Position</span><span class="tt-v" id="tt-pos">Namakgale</span></div>
+      <div class="tt-row"><span class="tt-k">ETA</span><span class="tt-v" id="tt-eta">14:23</span></div>
+    </div>
+
+    <!-- Layer controls -->
+    <div class="map-controls">
+      <button class="mc-btn on" onclick="toggleLayer(this)">All Trains</button>
+      <button class="mc-btn" onclick="toggleLayer(this)">Alerts Only</button>
+      <button class="mc-btn" onclick="toggleLayer(this)">Speed View</button>
+    </div>
+
+    <!-- DETAIL POPUP -->
+    <div class="popup" id="popup">
+      <div class="ph">
+        <div class="ph-top">
+          <div class="ph-id" id="p-id">TFR-4471</div>
+          <div style="display:flex;gap:7px;align-items:center;">
+            <span class="badge b-on" id="p-badge">On Time</span>
+            <button class="ph-close" onclick="closePopup()">✕</button>
+          </div>
+        </div>
+        <div class="ph-metrics">
+          <div class="pm"><div class="pm-val acc" id="p-spd">72 km/h</div><div class="pm-lbl">Speed</div></div>
+          <div class="pm"><div class="pm-val" id="p-next">Gravelotte</div><div class="pm-lbl">Next Station</div></div>
+          <div class="pm"><div class="pm-val acc" id="p-eta">14:23</div><div class="pm-lbl">ETA</div></div>
+          <div class="pm"><div class="pm-val ok" id="p-delay">On Time</div><div class="pm-lbl">Delay</div></div>
+        </div>
+      </div>
+      <div class="pd">
+        <div class="prow"><div class="pk">Position</div><div class="pv" id="p-pos">Namakgale</div></div>
+        <div class="prow"><div class="pk">Commodity</div><div class="pv" id="p-load">Iron Ore</div></div>
+        <div class="prow"><div class="pk">Wagons</div><div class="pv" id="p-wagons">48</div></div>
+        <div class="prow"><div class="pk">Gross Mass</div><div class="pv" id="p-mass">3 240 t</div></div>
+        <div class="prow"><div class="pk">Customer</div><div class="pv" id="p-cust">Foskor (Pty) Ltd</div></div>
+        <div class="prow"><div class="pk">Direction</div><div class="pv" id="p-dir">→ Hoedspruit</div></div>
+      </div>
+      <div class="pa">
+        <button class="pa-btn" onclick="quickAction(this,'✓ Acknowledged')">Acknowledge</button>
+        <button class="pa-btn" onclick="quickAction(this,'📋 Sent')">Dispatch Note</button>
+        <button class="pa-btn danger" onclick="quickAction(this,'📞 Calling...')">Contact Driver</button>
+        <button class="pa-btn" onclick="quickAction(this,'📤 Done')">Export Manifest</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM -->
+<div class="bottom">
+  <div class="alerts-wrap">
+    <div class="a-header">
+      <div class="a-lbl">Active Alerts</div>
+      <div class="a-updated">Updated <span id="updated-ago">0</span>s ago <span class="a-refresh" id="refresh-icon" onclick="triggerSync()">↻</span></div>
+    </div>
+    <div class="alerts-list">
+      <div class="arow"><div class="adot crit"></div><div class="atext">TFR-5103 stopped at Gravelotte — no driver response. Dispatcher notified.<span class="atime">13:44 · <span id="stop-ago">34</span> min ago</span></div></div>
+      <div class="arow"><div class="adot warn"></div><div class="atext">TFR-3892 speed drop detected near Lulekani. Track inspection flagged.<span class="atime">13:21 · 57 min ago</span></div></div>
+      <div class="arow"><div class="adot ok"></div><div class="atext">All GPS units synced. System operational.<span class="atime">Now</span></div></div>
+    </div>
+  </div>
+  <div class="quick-actions">
+    <div class="qa-lbl">Quick Actions</div>
+    <button class="qa-btn" onclick="qaFeedback(this,'✓ Done')">✓ Acknowledge All</button>
+    <button class="qa-btn" onclick="qaFeedback(this,'📋 Sent')">📋 Dispatch Note</button>
+    <button class="qa-btn" onclick="qaFeedback(this,'📤 Exporting...')">📤 Export Report</button>
+  </div>
+</div>
+
+<script>
+const STATIONS=[
+  {name:'Phalaborwa Mine', x:100,y:60, km:0},
+  {name:'Phalaborwa Yard', x:175,y:115,km:4},
+  {name:'Lulekani',        x:268,y:185,km:12},
+  {name:'Namakgale',       x:378,y:268,km:19},
+  {name:'Gravelotte',      x:500,y:348,km:34},
+  {name:'Mica',            x:610,y:408,km:46},
+  {name:'Ofcolaco',        x:715,y:455,km:55},
+  {name:'Hoedspruit Yard', x:840,y:500,km:67},
+];
+const TOTAL=67;
+
+const TRAINS=[
+  {id:'TFR-4471',status:'ontime', progress:0.27,speed:72, dir:1, load:'Iron Ore',  wagons:48,mass:'3 240 t',cust:'Foskor (Pty) Ltd'},
+  {id:'TFR-3892',status:'delayed',progress:0.79,speed:58, dir:-1,load:'Phosphate', wagons:36,mass:'2 100 t',cust:'Omnia Fertilizers'},
+  {id:'TFR-5103',status:'stopped',progress:0.47,speed:0,  dir:0, load:'Copper',    wagons:24,mass:'1 560 t',cust:'Palabora Copper'},
+];
+
+let selected=0, syncAgo=0, updatedAgo=0, stoppedMin=34, stoppedSec=0;
+
+function lerp(p){
+  const n=STATIONS.length-1, si=Math.min(Math.floor(p*n),n-1), t=p*n-si;
+  const a=STATIONS[si],b=STATIONS[si+1];
+  return{x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t};
+}
+function nearest(p){const km=p*TOTAL;return STATIONS.reduce((b,s)=>Math.abs(s.km-km)<Math.abs(b.km-km)?s:b);}
+function nextSt(p,d){const km=p*TOTAL;if(d>=0)return STATIONS.find(s=>s.km>km)||STATIONS[STATIONS.length-1];return[...STATIONS].reverse().find(s=>s.km<km)||STATIONS[0];}
+function calcETA(p,d,spd){
+  if(!spd)return'--:--';
+  const next=nextSt(p,d),dist=Math.abs(next.km-p*TOTAL),now=new Date();
+  now.setTime(now.getTime()+(dist/spd)*3600000);
+  return now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+}
+
+function setTrainPos(i,progress){
+  const {x,y}=lerp(progress);
+  const g=document.getElementById('train-'+i);
+  if(g){g.setAttribute('transform',`translate(${x},${y})`);}
+
+  // direction arrow
+  if(TRAINS[i].dir!==0){
+    const fwd=lerp(Math.max(0.01,Math.min(0.99,progress+TRAINS[i].dir*0.02)));
+    const dx=(fwd.x-x)*0.7,dy=(fwd.y-y)*0.7;
+    const len=Math.sqrt(dx*dx+dy*dy)||1;
+    const nx=dx/len,ny=dy/len;
+    const arr=document.getElementById('arrow-'+i);
+    if(arr){
+      // small arrow 8px ahead
+      const ax=nx*20,ay=ny*20;
+      const px=-ny*4,py=nx*4;
+      arr.setAttribute('points',`${ax+px},${ay+py} ${ax-px},${ay-py} ${ax+nx*8},${ay+ny*8}`);
+    }
+  }
+}
+
+function selectTrain(idx){
+  selected=idx;
+  const t=TRAINS[idx];
+  const near=nearest(t.progress),next=nextSt(t.progress,t.dir),e=calcETA(t.progress,t.dir,t.speed);
+
+  [0,1,2].forEach(i=>{
+    const c=document.getElementById('card-'+i);
+    if(c) c.className='tcard'+(i===idx?` sel-${i}`:'');
+  });
+
+  // popup fill
+  document.getElementById('p-id').textContent=t.id;
+  const bMap={ontime:['badge b-on','On Time'],delayed:['badge b-delay','Delayed +18min'],stopped:['badge b-stop','Stopped']};
+  const [bc,bt]=bMap[t.status];
+  const pb=document.getElementById('p-badge');pb.className=bc;pb.textContent=bt;
+  document.getElementById('p-spd').textContent=t.speed?t.speed+' km/h':'Stopped';
+  document.getElementById('p-spd').className='pm-val '+(t.speed>0?'acc':'stop');
+  document.getElementById('p-next').textContent=next.name;
+  document.getElementById('p-eta').textContent=e;
+  const dEl=document.getElementById('p-delay');
+  dEl.textContent=t.status==='ontime'?'None':t.status==='delayed'?'+18 min':'Stopped '+stoppedMin+' min';
+  dEl.className='pm-val '+(t.status==='ontime'?'ok':t.status==='delayed'?'warn':'stop');
+  document.getElementById('p-pos').textContent=near.name;
+  document.getElementById('p-load').textContent=t.load;
+  document.getElementById('p-wagons').textContent=t.wagons;
+  document.getElementById('p-mass').textContent=t.mass;
+  document.getElementById('p-cust').textContent=t.cust;
+  document.getElementById('p-dir').textContent=t.dir>0?'→ Hoedspruit':t.dir<0?'← Phalaborwa':'⬛ Stationary';
+  document.getElementById('popup').classList.add('show');
+}
+window.selectTrain=selectTrain;
+
+function closePopup(){document.getElementById('popup').classList.remove('show');}
+window.closePopup=closePopup;
+
+function showTooltip(e,idx){
+  const t=TRAINS[idx],near=nearest(t.progress),eta=calcETA(t.progress,t.dir,t.speed);
+  document.getElementById('tt-id').textContent=t.id;
+  document.getElementById('tt-spd').textContent=t.speed?t.speed+' km/h':'Stopped';
+  document.getElementById('tt-pos').textContent=near.name;
+  document.getElementById('tt-eta').textContent=eta;
+  const tt=document.getElementById('tooltip');
+  const rect=document.querySelector('.map-wrap').getBoundingClientRect();
+  tt.style.left=(e.clientX-rect.left+14)+'px';
+  tt.style.top=(e.clientY-rect.top-70)+'px';
+  tt.classList.add('show');
+}
+window.showTooltip=showTooltip;
+function hideTooltip(){document.getElementById('tooltip').classList.remove('show');}
+window.hideTooltip=hideTooltip;
+
+function toggleLayer(btn){
+  document.querySelectorAll('.mc-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function quickAction(btn,msg){const orig=btn.textContent;btn.textContent=msg;setTimeout(()=>btn.textContent=orig,1400);}
+window.quickAction=quickAction;
+function qaFeedback(btn,msg){const orig=btn.textContent;btn.textContent=msg;setTimeout(()=>btn.textContent=orig,1200);}
+window.qaFeedback=qaFeedback;
+
+function triggerSync(){
+  const icon=document.getElementById('refresh-icon');
+  icon.classList.add('spin');
+  syncAgo=0;updatedAgo=0;
+  setTimeout(()=>icon.classList.remove('spin'),400);
+}
+window.triggerSync=triggerSync;
+
+function tick(){
+  TRAINS.forEach((t,i)=>{
+    if(t.speed>0){
+      t.progress=Math.max(0.01,Math.min(0.99,t.progress+(t.speed/3600/TOTAL)*t.dir));
+      t.speed=Math.round(Math.max(i===1?48:62,Math.min(i===1?66:84,t.speed+(Math.random()-.5)*.8)));
+    }
+    setTrainPos(i,t.progress);
+    if(i<2){
+      const near=nearest(t.progress),e=calcETA(t.progress,t.dir,t.speed);
+      const pct=Math.round((i===0?t.progress:1-t.progress)*100);
+      const pos=document.getElementById('pos-'+i),spd=document.getElementById('spd-'+i),eta=document.getElementById('eta-'+i),prog=document.getElementById('prog-'+i),pctEl=document.getElementById('pct-'+i);
+      if(pos)pos.textContent=near.name;
+      if(spd)spd.textContent=t.speed+' km/h';
+      if(eta)eta.textContent='ETA '+e;
+      if(prog)prog.style.width=pct+'%';
+      if(pctEl)pctEl.textContent=pct+'%';
+    }
+  });
+
+  stoppedSec++;if(stoppedSec>=60){stoppedSec=0;stoppedMin++;}
+  document.getElementById('stopped-min').textContent=stoppedMin;
+  document.getElementById('stop-ago').textContent=stoppedMin;
+
+  syncAgo++;updatedAgo++;
+  document.getElementById('sync-ago').textContent=syncAgo;
+  document.getElementById('updated-ago').textContent=updatedAgo;
+  if(syncAgo%30===0){
+    const sd=document.getElementById('sync-dot');
+    sd.classList.add('spin');setTimeout(()=>sd.classList.remove('spin'),400);
+  }
+
+  const avg=Math.round(TRAINS.filter(t=>t.speed>0).reduce((s,t)=>s+t.speed,0)/2);
+  document.getElementById('h-avgspd').textContent=avg;
+  document.getElementById('avg-spd').textContent=avg;
+
+  if(document.getElementById('popup').classList.contains('show'))selectTrain(selected);
+}
+
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+}
+
+TRAINS.forEach((_,i)=>setTrainPos(i,TRAINS[i].progress));
+selectTrain(0);
+setInterval(tick,1000);
+setInterval(updateClock,1000);
+updateClock();
+
+// ── PASSWORD GATE ──
+const PASS = 'Transnet2026';
+function unlock(){
+  const v=document.getElementById('gate-input').value;
+  const err=document.getElementById('gate-err');
+  if(v===PASS){
+    const g=document.getElementById('gate');
+    g.classList.add('fade');
+    setTimeout(()=>g.style.display='none',450);
+  } else {
+    const inp=document.getElementById('gate-input');
+    inp.classList.add('err');
+    err.textContent='Incorrect access code.';
+    inp.value='';
+    setTimeout(()=>{inp.classList.remove('err');err.textContent='';},1200);
+  }
+}
+window.unlock=unlock;
+document.getElementById('gate-input').focus();
+</script>
+</body>
+</html>
